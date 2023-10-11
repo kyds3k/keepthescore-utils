@@ -1,7 +1,7 @@
 import "./style.css";
 
-const token = "emiktfvokje";
-const giphyKey = "v7hsD5TZk1sUMipWpt3GijPTm6CuExMO"
+const token = import.meta.env.VITE_KEEPTHESCORE_TOKEN;
+const giphyKey = import.meta.env.VITE_GIPHY_KEY;
 
 const playerEndPoint = `https://keepthescore.com/api/${token}/player/`;
 const boardEndPoint = `https://keepthescore.com/api/${token}/board/`;
