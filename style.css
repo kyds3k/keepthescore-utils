@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
 .team-image-preview {
   max-width: 100px;
 }
