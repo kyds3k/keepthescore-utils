@@ -5,7 +5,10 @@ const giphyKey = import.meta.env.VITE_GIPHY_KEY;
 
 const playerEndPoint = `https://keepthescore.com/api/${token}/player/`;
 const boardEndPoint = `https://keepthescore.com/api/${token}/board/`;
+const scoreEndPoint = `https://keepthescore.com/api/${token}/score/`;
+const roundEndPoint = `https://keepthescore.com/api/${token}/board/round/`;
 
+getTeams();
 
 // when button with class "team-add" is clicked, add a new player
 document.querySelector(".team-add").addEventListener("click", (e) => {
@@ -59,6 +62,7 @@ function addTeam(teamName, teamImage) {
       //change the innerHTML of .team-add to "Team added!"
       console.log("Player created:", data);
       document.querySelector(".team-add").innerHTML = "Team added!";
+      getTeams();
       setTimeout(() => {
       // clear the values of all inputs in the .team-add div
       document.querySelector("#team-name").value = "";
@@ -71,6 +75,9 @@ function addTeam(teamName, teamImage) {
     .catch(error => {
       console.error("Error:", error);
     });
+    setTimeout(() => {
+      getTeams();
+    }, 4000);
 }
 
 function getTeams() {
@@ -86,8 +93,21 @@ function getTeams() {
       console.log("Board:", data);
       let teamList = document.querySelector(".team-list");
       teamList.innerHTML = "";
-      data.players.forEach((team) => {
-        teamList.innerHTML += `<li class="team mb-1"><input type="checkbox" class="mr-2 delete-check" id="${team.id}" data-name="${team.name}" data-team="${team.id}" data-board="${token}"><label class="cursor-pointer" for="${team.id}">${team.name}</label></li>`;
+      data.players.forEach((team, index) => {
+        const bgClass = index % 2 === 0 ? "bg-slate-400" : "bg-slate-600";
+        const firstChild = index == 0;
+        teamList.innerHTML += 
+        `<li class="team my-4 px-4 pt-1 pb-2 break-inside-avoid ${bgClass} ${firstChild ? "mt-0" : ''}">
+          <input type="checkbox" class="mr-2 delete-check" id="${team.id}" data-name="${team.name}" data-team="${team.id}" data-board="${token}">
+          <label class="cursor-pointer" for="${team.id}">${team.name} (current score: ${team.score})</label>
+          <div class="score-ops block pt-2 flex gap-4 text-white">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-5 rounded score-change score-minus" data-team="${team.id}" data-value="1" data-board="${token}">-1</button>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-5 rounded score-change score-minus" data-team="${team.id}" data-value="5" data-board="${token}">-5</button>
+            <input type="number" class="score text-black w-[75px] py-1 px-2 transition-colors" value="0" data-team="${team.id}" data-board="${token}">            
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-5 rounded score-change score-plus" data-team="${team.id}" data-value="1" data-board="${token}">+1</button>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-5 rounded score-change score-plus" data-team="${team.id}" data-value="5" data-board="${token}">+5</button>            
+          </div>
+        </li>`;
       });
     })
     .catch(error => {
@@ -121,6 +141,69 @@ function deleteTeam(teamId, teamName) {
     });
 }
 
+function addScore(id, score) {
+  const sendId = parseInt(id);
+  const sendScore = parseFloat(score);
+  
+  const data = JSON.stringify({
+    "player_id": sendId,
+    "score": sendScore,
+    "goal": 0
+  });
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", scoreEndPoint, true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 201) {
+        console.log("Score added!");
+        // Handle success response if needed
+      } else {
+        console.error("Error:", xhr.statusText);
+        // Handle error response if needed
+      }
+    }
+  };
+
+  xhr.send(data);
+}
+
+function addScores() {
+  // for each .score input, grab the data-team value, and the value of the input, and put them into a JSON object {"scores: [{player_id: 1, score: 0}, {player_id: 2, score: 0}]} and send it to the API"}
+  const scoreInputs = document.querySelectorAll(".score");
+  let scores = [];
+  scoreInputs.forEach((scoreInput) => {
+    const teamId = scoreInput.getAttribute("data-team");
+    const score = scoreInput.value;
+    scores.push({player_id: teamId, score: score});
+  });
+  const data = JSON.stringify({
+    "scores": scores
+  });
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", roundEndPoint, true);  
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4) {
+      if (xhr.status === 200) {
+        console.log("Scores added!");
+        scoreInputs.forEach((scoreInput) => {
+          scoreInput.value = 0;
+        });
+        // Handle success response if needed
+      } else {
+        console.error("Error:", xhr.statusText);
+        // Handle error response if needed
+      }
+    }
+  };
+
+  xhr.send(data);
+}
+
+
 document.querySelector(".teams-delete").addEventListener("click", (e) => {
   e.preventDefault();
   console.log('Executing Order 66');
@@ -150,10 +233,32 @@ document.querySelector(".teams-delete").addEventListener("click", (e) => {
   }
 });
 
+document.querySelector(".score-update").addEventListener("click", (e) => {
+  console.log('DRAMATIC SCORE UPDATE');
+  addScores();
+});
+
+// Score functionality
+
+// if ".score-change" is clicked, check if it has class "score-plus" or "score-minus". If so, add or subtract the value of its data-value attribute from the value of the input with class "score" that has the same data-team attribute
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("score-change")) {
+    const teamId = e.target.getAttribute("data-team");
+    const boardId = e.target.getAttribute("data-board");
+    const value = e.target.getAttribute("data-value");
+    const scoreInput = document.querySelector(`.score[data-team="${teamId}"]`);
+    const score = parseInt(scoreInput.value);
+    const newScore = e.target.classList.contains("score-plus") ? score + parseInt(value) : score - parseInt(value);
+    scoreInput.value = newScore;      
+  }
+});
+
+
+//GIF functionality
 
 function getGifs(searchTerm) {
   let xhr = new XMLHttpRequest();
-  const url = `http://api.giphy.com/v1/gifs/search?q=${searchTerm}&api_key=${giphyKey}&limit=10`;
+  const url = `//api.giphy.com/v1/gifs/search?q=${searchTerm}&api_key=${giphyKey}&limit=10`;
   let data;
   const gifContainer = document.querySelector(".gifs-modal-content-inner");
   // clear all content from gifContainer
@@ -169,7 +274,7 @@ function getGifs(searchTerm) {
       data.data.forEach((gif) => {
         let item = `<div class="gif-item w-1/4 relative">`
         item += `<img src="https://i.giphy.com/media/${gif.id}/giphy.webp" alt="${gif.title}">`
-        item += `<span class="copy-link absolute cursor-pointer bg-gray-400 p-2 rounded top-2 right-2" data-alt="${gif.title}" data-link="https://i.giphy.com/media/${gif.id}/giphy.webp">Copy Link</span>`
+        item += `<span class="copy-link absolute cursor-pointer bg-gray-400 p-2 rounded top-2 right-2" data-alt="${gif.title}" data-link="https://i.giphy.com/media/${gif.id}/giphy.webp">Choose image</span>`
         item += `</div>`
         gifContainer.innerHTML += item;
       });

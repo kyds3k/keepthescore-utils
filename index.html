@@ -17,7 +17,7 @@
           <label class="mb-2 block" for="team-name">Team name</label>
           <input class="p-1 rounded text-black mb-5 block" type="text" name="team-name" id="team-name" />
           <label class="mb-2 block" for="team-image">Search for team image</label>
-          <input class="p-1 rounded text-black mb-5 mr-2" type="text" name="team-image" id="gif-search" />
+          <input title="Gif search" class="p-1 rounded text-black mb-5 mr-2" type="text" name="team-image" id="gif-search" />
           <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded gifs-get" type="submit">Get gifs</button>
           <label class="mb-2 block" for="team-name">Team image</label>
           <input class="p-1 rounded text-black mb-6" type="text" name="team-image" id="team-image" />
@@ -28,11 +28,14 @@
       <div>
         <h2 class="text-2xl mb-2">Team List</h2>
         <div class="mb-10">
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded board-get mb-3" type="submit">Get teams</button>
-          <ul class="team-list">
+          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded board-get mb-8" type="submit">Get teams</button>
+          <ul class="team-list columns-2">
 
           </ul>
-          <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded teams-delete mt-3" type="submit">Delete selected teams</button>          
+          <div class="flex flex-col">
+            <button class="transition-colors bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded score-update my-8 self-start" type="submit">DRAMATIC SCORE UPDATE</button>                    
+            <button class="transition-colors bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 self-start rounded teams-delete" type="submit">Delete selected teams</button>          
+          </div>
         </div>        
       </div>      
     </div>
