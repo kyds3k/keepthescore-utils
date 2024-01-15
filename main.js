@@ -22,10 +22,6 @@ document.querySelector(".team-add").addEventListener("click", (e) => {
   }
 });
 
-document.querySelector(".board-get").addEventListener("click", (e) => {
-  e.preventDefault();
-  getTeams();
-});
 
 document.querySelector(".gifs-get").addEventListener("click", (e) => {
   e.preventDefault();
@@ -91,24 +87,57 @@ function getTeams() {
     })
     .then(data => {
       console.log("Board:", data);
-      let teamList = document.querySelector(".team-list");
-      teamList.innerHTML = "";
-      data.players.forEach((team, index) => {
-        const bgClass = index % 2 === 0 ? "bg-slate-400" : "bg-slate-600";
-        const firstChild = index == 0;
-        teamList.innerHTML += 
-        `<li class="team my-4 px-4 pt-1 pb-2 break-inside-avoid ${bgClass} ${firstChild ? "mt-0" : ''}">
-          <input type="checkbox" class="mr-2 delete-check" id="${team.id}" data-name="${team.name}" data-team="${team.id}" data-board="${token}">
-          <label class="cursor-pointer" for="${team.id}">${team.name} (current score: ${team.score})</label>
-          <div class="score-ops block pt-2 flex gap-4 text-white">
-            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-5 rounded score-change score-minus" data-team="${team.id}" data-value="1" data-board="${token}">-1</button>
-            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-5 rounded score-change score-minus" data-team="${team.id}" data-value="5" data-board="${token}">-5</button>
-            <input type="number" class="score text-black w-[75px] py-1 px-2 transition-colors" value="0" data-team="${team.id}" data-board="${token}">            
-            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-5 rounded score-change score-plus" data-team="${team.id}" data-value="1" data-board="${token}">+1</button>
-            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-5 rounded score-change score-plus" data-team="${team.id}" data-value="5" data-board="${token}">+5</button>            
-          </div>
-        </li>`;
+      
+      const teamLists = document.querySelectorAll(".team-list");
+
+      teamLists.forEach((teamList) => {
+        data.players.forEach((team, index) => {
+          const bgClass = index % 2 === 0 ? "bg-slate-400" : "bg-slate-500";
+          const firstChild = index == 0;
+
+          teamList.innerHTML += 
+          `<li class="flex justify-start align-middle gap-6 team team-${index + 1} my-4 p-4 w-full ${bgClass} ${firstChild ? "mt-0" : ''}">
+            <img src="${team.profile_image}" alt="${team.name}" class="team-image w-16 h-16 rounded-full">
+            <div class="flex flex-col">
+              <div class="flex flex-col">
+                <div>
+                  <label class="cursor-pointer" for="${team.id}">${team.name} (current score: <span class="current-score" data-team="${team.id}">${team.score}</span>)</label>
+                </div>
+              </div>
+              <div class="row flex justify-between team-score" data-team="${team.id}"></div>
+            </div>
+            <button class="bg-slate-800 hover:bg-slate-900 text-white py-2 px-6 ml-4 rounded self-center team-delete" data-team="${team.id}" data-name="${team.name}">DELETE TEAM</button>
+            </div>                   
+          </li>`;
+        });
       });
+      
+      const teamScores = document.querySelectorAll(".team-score");
+      teamScores.forEach((teamScore) => {
+
+        const teamId = teamScore.getAttribute("data-team");
+
+        const scoreChanger = `<div class="item">
+        <div class="score-ops py-2">
+          <div class="flex gap-4">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-6 rounded score-change score-minus" data-team="${teamId}" data-value="1" data-board="${token}">-1</button>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-6 rounded score-change score-minus" data-team="${teamId}" data-value="5" data-board="${token}">-5</button>
+            <input type="number" class="score text-black w-[75px] py-1 px-2 transition-colors" value="0" data-team="${teamId}" data-board="${token}">            
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-6 rounded score-change score-plus" data-team="${teamId}" data-value="1" data-board="${token}">+1</button>
+            <button class="bg-blue-500 hover:bg-blue-700 text-white py-1 px-6 rounded score-change score-plus" data-team="${teamId}" data-value="5" data-board="${token}">+5</button>            
+            <button class="apply-score hidden mt-2 bg-blue-500 hover:bg-blue-700 text-white py-1 px-3 rounded">Apply Score</button>
+          </div>
+          </div>
+        </div>`;
+
+
+          teamScore.innerHTML += scoreChanger;
+
+      });
+
+      // let teamList = document.querySelector(".team-list");
+      // teamList.innerHTML = "";
+
     })
     .catch(error => {
       console.error("Error:", error);
@@ -170,9 +199,11 @@ function addScore(id, score) {
   xhr.send(data);
 }
 
-function addScores() {
+function addScores(round) {
   // for each .score input, grab the data-team value, and the value of the input, and put them into a JSON object {"scores: [{player_id: 1, score: 0}, {player_id: 2, score: 0}]} and send it to the API"}
-  const scoreInputs = document.querySelectorAll(".score");
+  const scoreInputs = document.querySelectorAll(`.tab[data-round="${round}"] .score`);
+  console.log(scoreInputs);
+  const resultsContainer = document.querySelector(`.submit-results[data-round="${round}"]`);
   let scores = [];
   scoreInputs.forEach((scoreInput) => {
     const teamId = scoreInput.getAttribute("data-team");
@@ -189,13 +220,19 @@ function addScores() {
     if (xhr.readyState === 4) {
       if (xhr.status === 200) {
         console.log("Scores added!");
-        scoreInputs.forEach((scoreInput) => {
-          scoreInput.value = 0;
+        resultsContainer.innerHTML = "Scores submitted!";
+        // Update scores on all tabs
+        scores.forEach((score) => {
+          const currentScores = document.querySelectorAll(`.current-score[data-team="${score.player_id}"]`);
+          currentScores.forEach((currentScore) => {
+            const currentScoreValue = parseInt(currentScore.innerHTML);
+            const newScore = currentScoreValue + parseInt(score.score);
+            currentScore.innerHTML = newScore;
+          });
         });
-        // Handle success response if needed
       } else {
         console.error("Error:", xhr.statusText);
-        // Handle error response if needed
+        resultsContainer.innerHTML = `Error: ${xhr.statusText}`;
       }
     }
   };
@@ -204,38 +241,39 @@ function addScores() {
 }
 
 
-document.querySelector(".teams-delete").addEventListener("click", (e) => {
-  e.preventDefault();
-  console.log('Executing Order 66');
-  const checkboxes = document.querySelectorAll(".delete-check:checked");
+// document.querySelector(".teams-delete").addEventListener("click", (e) => {
+//   e.preventDefault();
+//   console.log('Executing Order 66');
+//   const checkboxes = document.querySelectorAll(".delete-check:checked");
 
-  let index = 0;
+//   let index = 0;
 
-  function processCheckboxes() {
-    if (index < checkboxes.length) {
-      const checkbox = checkboxes[index];
-      console.log('Deleting team:', checkbox.getAttribute("data-name"));
-      deleteTeam(checkbox.getAttribute("data-team"), checkbox.getAttribute("data-name"));
+//   function processCheckboxes() {
+//     if (index < checkboxes.length) {
+//       const checkbox = checkboxes[index];
+//       console.log('Deleting team:', checkbox.getAttribute("data-name"));
+//       deleteTeam(checkbox.getAttribute("data-team"), checkbox.getAttribute("data-name"));
 
-      index++; // Move to the next checkbox
+//       index++; // Move to the next checkbox
 
-      setTimeout(processCheckboxes, 5000); // 5000 milliseconds = 5 seconds
-    } else {
-      console.log('All done!');
-      getTeams();
-    }
-  }
+//       setTimeout(processCheckboxes, 5000); // 5000 milliseconds = 5 seconds
+//     } else {
+//       console.log('All done!');
+//       getTeams();
+//     }
+//   }
 
-  if (checkboxes.length > 0) {
-    processCheckboxes();
-  } else {
-    alert('Nothing checked!')
-  }
-});
+//   if (checkboxes.length > 0) {
+//     processCheckboxes();
+//   } else {
+//     alert('Nothing checked!')
+//   }
+// });
 
-document.querySelector(".score-update").addEventListener("click", (e) => {
+document.querySelector(".round-submit").addEventListener("click", (e) => {
+  const targetRound = e.target.getAttribute("data-round");
   console.log('DRAMATIC SCORE UPDATE');
-  addScores();
+  addScores(targetRound);
 });
 
 // Score functionality
